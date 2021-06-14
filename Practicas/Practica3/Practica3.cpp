@@ -6,13 +6,15 @@ map<int,vector<int>> tabla;
 vector<pair<int,char>> saltos;
 set<char> setSimbolos;
 vector<char> simbolos;
+vector<set<int>> setTabla;
 
-struct Arbolito {
+struct Arbolito{
 	char simbolo;
 	bool anulable;
 	int num;
-	vector<int> iniciales;
-	vector<int> finales;
+	int posicion;
+	vector<int> primeros;
+	vector<int> ultimos;
     Arbolito *left;
 	Arbolito *right;
 };
@@ -42,13 +44,12 @@ class AFD{
 	set<vector<int>> setEstadosCreados;
 	int numEstado=0 ;
 
-	void establecerFinales(){
+	void establecerFinales(){ 
 		for(int i=0; i<estados.size(); i++){
 			if(estados[i].second.size()!=0){
 				int n = estados[i].second.size()-1;
 				if(estados[i].second[n]==final){
 					finales.push_back(estados[i].first);
-					break;
 				}
 			}
 		}
@@ -59,8 +60,8 @@ class AFD{
 	}
 
 	void primerEstado(Arbolito *raiz){
-		setEstadosCreados.insert(raiz->iniciales);
-		nuevoEstado(raiz->iniciales,numEstado);
+		setEstadosCreados.insert(raiz->primeros);
+		nuevoEstado(raiz->primeros,numEstado);
 	}
 
 	void comprobarRepeticion(int estadoA, vector<int> estadoRepetido, char simbolo){
@@ -77,24 +78,29 @@ class AFD{
 	void crearEstados(){
 		for(int i=0; i<estados.size();i++){
 			for(int j=0; j<simbolos.size()-1;j++){
-				vector<int> aux;
+				vector<int> posibleEstado;
+				set<int> setPosibleEstado;
 				for(int l=0; l<estados[i].second.size();l++){
 					for(int k=0; k<saltos.size();k++){
 						if(estados[i].second[l]==saltos[k].first and saltos[k].second==simbolos[j]){
 							for(int n=0; n<tabla[saltos[k].first].size();n++){
-								aux.push_back(tabla[saltos[k].first][n]);
+								if(setPosibleEstado.count(tabla[saltos[k].first][n])==0){
+									posibleEstado.push_back(tabla[saltos[k].first][n]);
+									setPosibleEstado.insert(tabla[saltos[k].first][n]);
+								}
 							}
 						}
 					}
 				}
-				if(setEstadosCreados.count(aux)==0 and aux.size()>0){
-					setEstadosCreados.insert(aux);
+				sort(posibleEstado.begin(),posibleEstado.end());
+				if(setEstadosCreados.count(posibleEstado)==0 and posibleEstado.size()>0){
+					setEstadosCreados.insert(posibleEstado);
 					numEstado++;
-					nuevoEstado(aux,numEstado);
+					nuevoEstado(posibleEstado,numEstado);
 					nuevaTransicion(estados[i].first,numEstado,simbolos[j]);
 				}
-				else if(aux.size()>0){
-					comprobarRepeticion(estados[i].first,aux,simbolos[j]);
+				else if(posibleEstado.size()>0){
+					comprobarRepeticion(estados[i].first,posibleEstado,simbolos[j]);
 				}
 			}
 		}
@@ -130,23 +136,59 @@ AFD construirAFD(Arbolito *arbol){
 	return *nuevoAFD;
 }
 
-void mostrar(Arbolito *arbol, int cont){
-	if(arbol==NULL){
-		return;
+vector<int> obtenerPrimeros(Arbolito* arbol){
+	vector<int> respuesta;
+	switch (arbol->simbolo){
+		case '*':
+			respuesta = arbol->left->primeros;
+			break;
+		case '|':
+			respuesta = arbol->left->primeros;
+			for(int i=0;i<arbol->right->primeros.size();i++){
+					respuesta.push_back(arbol->right->primeros[i]);
+			}
+			break;
+		case '.':
+			respuesta = arbol->left->primeros;
+			if(arbol->left->anulable){
+				for(int i=0;i<arbol->right->primeros.size();i++){
+					respuesta.push_back(arbol->right->primeros[i]);
+				}
+			}
+			break;
+		default:
+			respuesta.push_back(arbol->posicion);
+			break;
 	}
-	else{
-		mostrar(arbol->right,cont+1);
-		for(int i=0; i<cont; i++){
-			cout<<"    ";
-		}
-		cout<<arbol->simbolo;
-		for(int i=0; i<arbol->finales.size(); i++){
-			cout<<arbol->finales[i];
-		}
-		cout<<endl;
-		mostrar(arbol->left,cont+1);
-	}
+	return respuesta;
 }
+
+vector<int> obtenerUltimos(Arbolito* arbol){
+	vector<int> respuesta;
+	switch (arbol->simbolo){
+		case '*':
+			respuesta = arbol->left->ultimos;
+			break;
+		case '|':
+			respuesta = arbol->left->ultimos;
+			for(int i=0;i<arbol->right->ultimos.size();i++){
+				respuesta.push_back(arbol->right->ultimos[i]);
+			}
+			break;
+		case '.':
+			respuesta = arbol->right->ultimos;
+			if(arbol->right->anulable){
+				for(int i=0;i<arbol->left->ultimos.size();i++){
+					respuesta.push_back(arbol->left->ultimos[i]);
+				}
+			}
+			break;
+		default:
+			respuesta.push_back(arbol->posicion);
+			break;
+	}
+	return respuesta;
+}    
 
 bool esAnulable(char simbolo, bool anulable1, bool anulable2){
 	if(simbolo == '.'){
@@ -167,33 +209,42 @@ bool esAnulable(char simbolo, bool anulable1, bool anulable2){
 	}	
 }
 
+void siguientes(Arbolito *arbol){
+	vector<int> aux;
+	switch(arbol->simbolo){
+		case '*':
+			for(int i=0;i<arbol->ultimos.size();i++){
+				for(int j=0;j<arbol->primeros.size();j++){
+					if(setTabla[arbol->ultimos[i]-1].count(arbol->primeros[j])==0){
+						setTabla[arbol->ultimos[i]-1].insert(arbol->primeros[j]);
+						tabla[arbol->ultimos[i]].push_back(arbol->primeros[j]);
+					}
+				}
+			}
+		break;
+		case '.':
+			for(int i=0;i<arbol->right->primeros.size();i++){
+				for(int j=0;j<arbol->left->ultimos.size();j++){
+					if(setTabla[arbol->left->ultimos[j]-1].count(arbol->right->primeros[i])==0){
+						setTabla[arbol->left->ultimos[j]-1].insert(arbol->right->primeros[i]);
+						tabla[arbol->left->ultimos[j]].push_back(arbol->right->primeros[i]);
+					}
+				}
+			}
+		break;
+	}
+}
+
 Arbolito *concatenacion(Arbolito* hijo1, Arbolito* hijo2){
 	Arbolito *respuesta= new Arbolito;
 	respuesta->simbolo='.';
 	respuesta->left=hijo1;
 	respuesta->right=hijo2;
 	respuesta->anulable=esAnulable('.',hijo1->anulable,hijo2->anulable);
-	respuesta->iniciales=hijo1->iniciales;
-
-	if(hijo1->anulable==true){
-		for(int i=0; i<hijo2->iniciales.size();i++){
-			respuesta->iniciales.push_back(hijo2->iniciales[i]);
-		}
-	}
-
-	if(hijo2->anulable==true){
-		respuesta->finales=hijo1->finales;
-	}
-	else{
-		respuesta->finales=hijo2->finales;
-	}
-
-	for(int i=0; i<hijo1->finales.size();i++){
-		for(int j=0; j<hijo2->iniciales.size();j++){
-			tabla[hijo1->finales[i]].push_back(hijo2->iniciales[j]);
-		}
-	}
-
+	respuesta->primeros=obtenerPrimeros(respuesta);
+	respuesta->ultimos=obtenerUltimos(respuesta);
+	sort(respuesta->primeros.begin(),respuesta->primeros.end());
+	siguientes(respuesta);
 	return respuesta;
 }
 
@@ -203,14 +254,9 @@ Arbolito *operadorOr(Arbolito* hijo1, Arbolito* hijo2){
 	respuesta->left=hijo1;
 	respuesta->right=hijo2;
 	respuesta->anulable=esAnulable('|',hijo1->anulable,hijo2->anulable);
-	respuesta->iniciales=hijo1->iniciales;
-	for(int i=0; i<hijo2->iniciales.size();i++){
-		respuesta->iniciales.push_back(hijo2->iniciales[i]);
-	}
-	respuesta->finales=hijo1->finales;
-	for(int i=0; i<hijo2->finales.size();i++){
-		respuesta->finales.push_back(hijo2->finales[i]);
-	}
+	respuesta->primeros=obtenerPrimeros(respuesta);
+	respuesta->ultimos=obtenerUltimos(respuesta);
+	sort(respuesta->primeros.begin(),respuesta->primeros.end());
 	return respuesta;
 }
 
@@ -220,18 +266,12 @@ Arbolito *operadorKleene(Arbolito* hijo){
 	respuesta->left=hijo;
 	respuesta->right=NULL;
 	respuesta->anulable = true;
-	respuesta->iniciales=hijo->iniciales;
-	respuesta->finales=hijo->finales;
-	for(int i=0; i<respuesta->finales.size();i++){
-		for(int j=0; j<respuesta->iniciales.size();j++){
-			tabla[respuesta->finales[i]].push_back(respuesta->iniciales[j]);
-		}
-	}
+	respuesta->primeros=obtenerPrimeros(respuesta);
+	respuesta->ultimos=obtenerUltimos(respuesta);
+	sort(respuesta->primeros.begin(),respuesta->primeros.end());
+	siguientes(respuesta);
 	return respuesta;
 }
-
-
-
 
 Arbolito *crearArbol(string regex){
 	stack<Arbolito*> pila;
@@ -268,18 +308,21 @@ Arbolito *crearArbol(string regex){
 			aux->left=aux->right=NULL;
 			if(i!='e'){
 				aux->anulable=false;
+				if(setSimbolos.count(i)==0){
+					setSimbolos.insert(i);
+					simbolos.push_back(i);
+				}
 			}
 			else{
 				aux->anulable=true;
 			}
 			aux->num=num;
-			aux->iniciales.push_back(num);
-			aux->finales=aux->iniciales;
-			if(setSimbolos.count(i)==0){
-				setSimbolos.insert(i);
-				simbolos.push_back(i);
-			}
+			set<int> auxset;
+			setTabla.push_back(auxset);
 			saltos.push_back(make_pair(num,i));
+			aux->posicion=num;
+			aux->primeros=obtenerPrimeros(aux);
+			aux->ultimos=obtenerUltimos(aux);
 			num++;
 			pila.push(aux);
 		}
@@ -354,20 +397,6 @@ string definirConcatenaciones(string regex){
 		}
 	}
 	return nuevoRegex;
-}
-
-void mostrarTabla(){
-	int j=0;
-
-	tabla[num-1].push_back(0);
-	for(auto i:tabla){
-		cout<<i.first<<" "<<saltos[j].second<<"  ";
-		j++;
-		for(auto j: i.second){
-			cout<<j;
-		}
-		cout<<endl;
-	}
 }
 
 int main(){
