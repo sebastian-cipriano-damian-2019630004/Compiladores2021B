@@ -6,7 +6,7 @@ map<int,vector<int>> tabla;
 vector<pair<int,char>> saltos;
 set<char> setSimbolos;
 vector<char> simbolos;
-vector<set<int>> setTabla;
+vector<set<int>> setSiguientes;
 
 struct Arbolito{
 	char simbolo;
@@ -215,8 +215,8 @@ void siguientes(Arbolito *arbol){
 		case '*':
 			for(int i=0;i<arbol->ultimos.size();i++){
 				for(int j=0;j<arbol->primeros.size();j++){
-					if(setTabla[arbol->ultimos[i]-1].count(arbol->primeros[j])==0){
-						setTabla[arbol->ultimos[i]-1].insert(arbol->primeros[j]);
+					if(setSiguientes[arbol->ultimos[i]-1].count(arbol->primeros[j])==0){
+						setSiguientes[arbol->ultimos[i]-1].insert(arbol->primeros[j]);
 						tabla[arbol->ultimos[i]].push_back(arbol->primeros[j]);
 					}
 				}
@@ -225,8 +225,8 @@ void siguientes(Arbolito *arbol){
 		case '.':
 			for(int i=0;i<arbol->right->primeros.size();i++){
 				for(int j=0;j<arbol->left->ultimos.size();j++){
-					if(setTabla[arbol->left->ultimos[j]-1].count(arbol->right->primeros[i])==0){
-						setTabla[arbol->left->ultimos[j]-1].insert(arbol->right->primeros[i]);
+					if(setSiguientes[arbol->left->ultimos[j]-1].count(arbol->right->primeros[i])==0){
+						setSiguientes[arbol->left->ultimos[j]-1].insert(arbol->right->primeros[i]);
 						tabla[arbol->left->ultimos[j]].push_back(arbol->right->primeros[i]);
 					}
 				}
@@ -278,53 +278,54 @@ Arbolito *crearArbol(string regex){
 	Arbolito *hijo1;
 	Arbolito *hijo2;
 	Arbolito *respuesta;
-	
 	for(char i:regex){
 		Arbolito* aux = new Arbolito;
-		if(i=='.'){
-			hijo2=pila.top();
-			pila.pop();
-			hijo1=pila.top();
-			pila.pop();
-			respuesta=concatenacion(hijo1,hijo2);
-			pila.push(respuesta);
-		}
-		else if(i=='*'){
-			hijo1=pila.top();
-			pila.pop();
-			respuesta=operadorKleene(hijo1);
-			pila.push(respuesta);
-		}
-		else if(i=='|'){
-			hijo2=pila.top();
-			pila.pop();
-			hijo1=pila.top();
-			pila.pop();
-			respuesta=operadorOr(hijo1,hijo2);
-			pila.push(respuesta);
-		}
-		else{
-			aux->simbolo=i;
-			aux->left=aux->right=NULL;
-			if(i!='e'){
-				aux->anulable=false;
-				if(setSimbolos.count(i)==0){
-					setSimbolos.insert(i);
-					simbolos.push_back(i);
+		switch(i){
+			case '.':
+				hijo2=pila.top();
+				pila.pop();
+				hijo1=pila.top();
+				pila.pop();
+				respuesta=concatenacion(hijo1,hijo2);
+				pila.push(respuesta);
+				break;
+			case '*':
+				hijo1=pila.top();
+				pila.pop();
+				respuesta=operadorKleene(hijo1);
+				pila.push(respuesta);
+				break;
+			case '|':
+				hijo2=pila.top();
+				pila.pop();
+				hijo1=pila.top();
+				pila.pop();
+				respuesta=operadorOr(hijo1,hijo2);
+				pila.push(respuesta);
+				break;
+			default:
+				aux->simbolo=i;
+				aux->left=aux->right=NULL;
+				if(i!='e'){
+					aux->anulable=false;
+					if(setSimbolos.count(i)==0){
+						setSimbolos.insert(i);
+						simbolos.push_back(i);
+					}
 				}
-			}
-			else{
-				aux->anulable=true;
-			}
-			aux->num=num;
-			set<int> auxset;
-			setTabla.push_back(auxset);
-			saltos.push_back(make_pair(num,i));
-			aux->posicion=num;
-			aux->primeros=obtenerPrimeros(aux);
-			aux->ultimos=obtenerUltimos(aux);
-			num++;
-			pila.push(aux);
+				else{
+					aux->anulable=true;
+				}
+				aux->num=num;
+				set<int> auxset;
+				setSiguientes.push_back(auxset);
+				saltos.push_back(make_pair(num,i));
+				aux->posicion=num;
+				aux->primeros=obtenerPrimeros(aux);
+				aux->ultimos=obtenerUltimos(aux);
+				num++;
+				pila.push(aux);
+				break;
 		}
 	}
 	return pila.top();
@@ -401,11 +402,12 @@ string definirConcatenaciones(string regex){
 
 int main(){
 	Arbolito *respuesta;
-	string regex;
+	string regex,regexmodificada="(";
 	cin>>regex;
-	regex=definirConcatenaciones(regex);
+	regexmodificada+=regex + ")#";
+	regexmodificada=definirConcatenaciones(regexmodificada);
 	string post;
-	post=postfija(regex);
+	post=postfija(regexmodificada);
 	respuesta=crearArbol(post);
 	AFD respuestaAFD;
 	respuestaAFD=construirAFD(respuesta);
