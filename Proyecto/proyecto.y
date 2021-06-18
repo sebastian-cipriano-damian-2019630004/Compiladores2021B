@@ -1,60 +1,124 @@
 %{
-	#include<stdio.h>
+	#include <stdio.h>
+	#include <stdlib.h>
 	void yyerror(char *mensaje){
 		printf("Error: %s\n",mensaje);
 	}
 %}
 
 
+%token INT FLOAT CHAR IF ELSE WHILE FOR VOID RETURN BREAK
+%token OPADD OPSUBS OPMULT OPDIV OPMOD OPINCR OPDECR 
+%token OPIGUL OPNIGUL OPMA OPME OPMAI OPMEI
+%token IZQP DERP IZQC DERC IZQLL DERLL PC PUNTO COMA ASIG
+%token ID ICONST FCONST CCONST STRING
 
-%token VARIABLE NUMERO
-%%
-entrada:
-%empty
-;
-
-entrada: entrada linea
-;
-linea: '\n'
-;
-linea: expresion '\n'
-;
-linea: num '\n'
-;
-num: NUMERO			
-;
-expresion: VARIABLE			
-;
-expresion: expresion '=' num	 	{printf("Le asigna a una variable el valor indicado");}
-;
-expresion: expresion '<' expresion 	{printf("Dice si la primera variable es menor que la segunda variable: a < b");}
-;
-expresion: expresion '>' expresion 	{printf("Dice si la primera variable es mayor que la segunda variable:a > b");}
-;
-expresion: expresion '=''=' expresion 	{printf("Dice si la primera variable es igual a la segunda variable: a == b");}
-;
-expresion: expresion '>''=' expresion 	{printf("Dice si la primera variable es mayor o igual a la segunda variable: a >= b");}
-;
-expresion: expresion '<''=' expresion 	{printf("Dice si la primera variable es menor o igual a la segunda variable: a <= b");}
-;
-expresion: expresion '!''=' expresion 	{printf("Dice si la primera variable es diferente a la segunda variable: a != b");}
-;
-expresion: expresion '+' expresion 	{printf("Raliza la suma de a y b: a + b");}
-;
-expresion: expresion '-' expresion 	{printf("Realiza la diferencia de a y b : a - b");}
-;
-expresion: expresion '*' expresion 	{printf("Realiza el producto de a y b: a * b");}
-;
-expresion: expresion '/''/' expresion 	{printf("Obtiene el residuo de division entera de a y b");}
-;
-expresion: expresion '/' expresion 	{printf("Realiza la  razon a y b");
-					printf(" donde la primera variable toma el papel del dividendo");
-					printf(" y donde la segunda variable toma el papel del divisor: a / b");}
-;
-expresion: '-' expresion 	{printf("Multiplica por -1 el contenido de una variable");}
-;
 %%
 
+programa: declaraciones estructuras ;
+
+declaraciones: 
+    declaraciones declaracion |
+    declaracion
+;
+
+declaracion: tipo nombres PC ;
+
+tipo: INT |
+    CHAR |
+    FLOAT |
+    VOID
+;
+
+nombres: 
+    variable |
+    nombres COMA variable
+;
+
+variable: ID |
+    puntero ID |
+    ID arreglo
+;
+
+puntero: 
+    puntero OPMULT |
+     OPMULT ;
+
+arreglo: 
+    arreglo IZQC ICONST DERC  |
+    IZQC ICONST DERC  
+;
+
+estructuras: 
+    estructuras estructura |
+    estructura
+;
+
+estructura:
+    ifEstructura |
+    forEstructura |
+    whileEstructura |
+    asignacion |
+    CONTINUE PC |
+    BREAK PC |
+    RETURN PC
+;
+
+ifEstructura: IF IZQP expresion DERP aux else_if_part else_part ;
+
+else_if_part: 
+    else_if_part ELSE IF IZQP expresion DERP aux |
+    ELSE IF IZQP expresion DERP aux  
+; 
+
+else_part: ELSE aux; 
+
+forEstructura: FOR IZQP expresion PC expresion PC expresion DERP aux ;
+
+whileEstructura: WHILE IZQP expresion DERP aux ;
+
+aux: estructura PC | IZQLL estructuras DERLL  ;
+
+expresion:
+    expresion OPADD expresion |
+    expresion OPSUBS expresion |
+    expresion OPMULT expresion |
+    expresion OPDIV expresion |
+    expresion OPMOD expresion |
+    expresion OPINCR  |
+    expresion OPDECR |
+    OPINCR  expresion |
+    OPDECR  expresion |
+    expresion OROP expresion |
+    expresion ANDOP expresion |
+    NOTOP expresion |
+    expresion OPIGUL expresion |
+    expresion OPNIGUL expresion |
+    expresion OPMA expresion |
+    expresion OPME expresion |
+    expresion OPMAI expresion |
+    expresion OPMEI expresion |
+    IZQP expresion DERP |
+    variable |
+    sign constante
+;
+
+sign: 
+    OPADD |
+    OPSUBS 
+; 
+
+constante:
+    ICONST |
+    FCONST |
+    CCONST 
+;
+
+asignacion: referencia variable ASIG expresion PC ; 
+
+referencia: REFER;
+
+%%
 
 int main(){
 	yyparse();
