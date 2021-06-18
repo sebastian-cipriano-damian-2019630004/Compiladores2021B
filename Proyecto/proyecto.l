@@ -41,7 +41,7 @@ STRING		\"{print}*\"
 ";"					{ return PC; }
 "."					{ return PUNTO; }
 ","					{ return COMA; }
-"="					{ retrun ASIG; }
+"="					{ return ASIG; }
 "int"					{ return INT; }
 "float"					{ return FLOAT; }
 "char"      				{ return CHAR; }
