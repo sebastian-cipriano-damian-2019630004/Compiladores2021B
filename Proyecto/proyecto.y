@@ -12,6 +12,7 @@
 %token OPIGUL OPNIGUL OPMA OPME OPMAI OPMEI
 %token IZQP DERP IZQC DERC IZQLL DERLL PC PUNTO COMA ASIG
 %token ID ICONST FCONST CCONST STRING
+%token OPADD2 OPSUBS2 OPDIV2 OPMULT2 OPMOD2 OPAND OPOR
 
 %%
 
@@ -85,6 +86,11 @@ expresion:
     expresion OPMULT expresion |
     expresion OPDIV expresion |
     expresion OPMOD expresion |
+    expresion OPADD2 expresion |
+    expresion OPSUBS2 expresion |
+    expresion OPMULT2 expresion |
+    expresion OPDIV2 expresion |
+    expresion OPMOD2 expresion |
     expresion OPINCR  |
     expresion OPDECR |
     OPINCR  expresion |
