@@ -42,6 +42,13 @@ STRING		\"{print}*\"
 "."					{ return PUNTO; }
 ","					{ return COMA; }
 "="					{ return ASIG; }
+"+="					{ return OPADD2; }
+"-="					{ return OPSUBS2; }
+"/="					{ return OPDIV2; }
+"*="					{ return OPMULT2; }
+"%="					{ return OPMOD2; }
+"AND"					{ return OPAND; }
+"OR"					{ return OPOR; }
 "int"					{ return INT; }
 "float"					{ return FLOAT; }
 "char"      				{ return CHAR; }
