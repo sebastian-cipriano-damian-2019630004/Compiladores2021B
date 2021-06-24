@@ -14,6 +14,20 @@
 %token ID ICONST FCONST CCONST STRING
 %token OPADD2 OPSUBS2 OPDIV2 OPMULT2 OPMOD2 OPAND OPOR
 
+%left  IZQP DERP IZQC DERC IZQLL DERLL
+%right OPINCR OPDECR
+%left OPMUL
+%left OPDIV
+%left OPADD
+%left OPSUBS
+%left OPIGUL OPNIGUL OPMA OPME OPMAI OPMEI
+%left OPOR
+%left OPAND
+%right ASIG
+%left COMA
+
+
+%start
 %%
 
 programa: declaraciones estructuras ;
