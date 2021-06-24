@@ -7,6 +7,17 @@ struct conjunto{
 	vector<string> prod;
 };
 
+struct irA{
+	int a;
+	int b;
+	string sim;
+};
+
+struct salto{
+	int a;
+	int b;
+	string sim;
+};
 
 string extension;
 vector<string> producciones;
@@ -15,6 +26,8 @@ set<string> Terminales;
 vector<pair<string,vector<string>>> gramatica;
 vector<pair<int,conjunto>> conjuntos;
 set<vector<string>> kernels;
+vector<irA> virA;
+vector<salto> vSaltos;
 
 string reescribir(string produccion){
 	int j=0;
@@ -64,13 +77,11 @@ void obtenerCerradura(vector<string> kernel){
 		respuesta.push_back(kernel[i]);
 		agregadas.insert(kernel[i]);
 	}
-	cout<<"Si llegué 4.1"<<endl;
 	for(int i=0;i<respuesta.size();i++){
 		int j=0;
 		while(respuesta[i][j]!='.'){
 			j++;
 		}
-		cout<<"Si llegué 4.2"<<endl;
 		if(j+1<respuesta[i].size()){
 			string auxStr;
 			auxStr+=respuesta[i][j+1];
@@ -94,7 +105,6 @@ void obtenerCerradura(vector<string> kernel){
 vector<string> mover(string movercon, vector<string> vecProducciones){
 	vector<string> respuesta;
 	for(int i=0;i<vecProducciones.size();i++){
-		cout<<"."<<endl;
 		int j=0;
 		while(vecProducciones[i][j]!='.'){
 			j++;
@@ -108,35 +118,67 @@ vector<string> mover(string movercon, vector<string> vecProducciones){
 			}
 		}
 	}
-	cout<<"Si llegué"<<endl;
 	return respuesta;
 } 
 
-void crearConjuntos(){
-	vector<pair<string,vector<string>>> res;
-	for(int i=0;i<conjuntos.size();i++){
-		cout<<conjuntos.size()<<endl;
-		for(auto j:Terminales){
-			vector<string> nuevoKernel;
-			nuevoKernel=mover(j,conjuntos[i].second.prod);
-			cout<<"Si llegué 2"<<endl;
-			sort(nuevoKernel.begin(),nuevoKernel.end());
-			if(nuevoKernel.size()>0 and kernels.count(nuevoKernel)==0){
-				cout<<"Si llegué 3"<<endl;
-				kernels.insert(nuevoKernel);
-				res.push_back(make_pair(j,nuevoKernel));
-				obtenerCerradura(nuevoKernel);
-				cout<<"Si llegué 4"<<endl;
-			}
+int kernelRepetido(vector<string> kernel){
+	set<vector<string>> auxSet;
+	for(int i=1;i<conjuntos.size();i++){
+		auxSet.insert(conjuntos[i].second.kernel);
+		if(auxSet.count(kernel)==1){
+			return conjuntos[i].first;
 		}
+	}
+}
+
+void crearConjuntos(){
+	for(int i=0;i<conjuntos.size();i++){
 		for(auto j:noTerminales){
 			vector<string> nuevoKernel;
 			nuevoKernel=mover(j,conjuntos[i].second.prod);
 			sort(nuevoKernel.begin(),nuevoKernel.end());
 			if(nuevoKernel.size()>0 and kernels.count(nuevoKernel)==0){
 				kernels.insert(nuevoKernel);
-				res.push_back(make_pair(j,nuevoKernel));
+				int aux=numConjunto;
 				obtenerCerradura(nuevoKernel);
+				if(aux!=numConjunto){
+					irA nuevoIr;
+					nuevoIr.a=conjuntos[i].first;
+					nuevoIr.b=aux;
+					nuevoIr.sim=j;
+					virA.push_back(nuevoIr);
+				}
+			}
+			else if(kernels.count(nuevoKernel)==1){
+					irA nuevoIr;
+					nuevoIr.a=conjuntos[i].first;
+					nuevoIr.b=kernelRepetido(nuevoKernel);
+					nuevoIr.sim=j;
+					virA.push_back(nuevoIr);
+			}
+		}
+		for(auto j:Terminales){
+			vector<string> nuevoKernel;
+			nuevoKernel=mover(j,conjuntos[i].second.prod);
+			sort(nuevoKernel.begin(),nuevoKernel.end());
+			if(nuevoKernel.size()>0 and kernels.count(nuevoKernel)==0){
+				kernels.insert(nuevoKernel);
+				int aux=numConjunto;
+				obtenerCerradura(nuevoKernel);
+				if(aux!=numConjunto){
+					salto nuevoS;
+					nuevoS.a=conjuntos[i].first;
+					nuevoS.b=aux;
+					nuevoS.sim=j;
+					vSaltos.push_back(nuevoS);
+				}
+			}
+			else if(kernels.count(nuevoKernel)==1){
+					salto nuevoS;
+					nuevoS.a=conjuntos[i].first;
+					nuevoS.b=kernelRepetido(nuevoKernel);
+					nuevoS.sim=j;
+					vSaltos.push_back(nuevoS);
 			}
 		}
 	}
@@ -195,10 +237,30 @@ int main(){
 	for(int i=0;i<gramatica.size();i++){
 		definirTerminales(gramatica[i].second);
 	}
+	noTerminales.erase("S");
 	for(int i=0;i<producciones.size();i++){
 		producciones[i]=reescribir(producciones[i]);
 	}
 	primerCerradura(producciones[producciones.size()-1]);
-	cout<<conjuntos.size()<<endl;
+	cout<<"  ir_A"<<endl;
+
+	for(int j=0;j<virA.size();j++){
+		cout<<virA[j].a<<"--"<<virA[j].sim<<"-->"<<virA[j].b<<endl;
+	}
+	cout<<endl;
+	cout<<" Saltos"<<endl;
+
+	for(int j=0;j<vSaltos.size();j++){
+		cout<<vSaltos[j].a<<"--"<<vSaltos[j].sim<<"-->"<<vSaltos[j].b<<endl;
+	}
+	extension+='.';
+	for(int i=0;i<conjuntos.size();i++){
+		for(int j=0;j<conjuntos[i].second.prod.size();j++){
+			if(conjuntos[i].second.prod[j]==extension){
+				cout<<conjuntos[i].first<<"--$-->AC"<<endl;
+			}
+		}
+	}
+
 	return 0;
 }
