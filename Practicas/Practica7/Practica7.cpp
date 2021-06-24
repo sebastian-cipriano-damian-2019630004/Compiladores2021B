@@ -68,6 +68,80 @@ void definirGramatica(string produccion){
 	gramatica.push_back(make_pair(noTer,simbolos));
 }
 
+set<string> calcularPrimeros(pair<string,vector<string>> produccion){
+	set<string> respuesta;
+	for(int i=0; i<produccion.second.size();i++){
+		if(noTerminales.count(produccion.second[i])==1 and (respuesta.size()==0 or respuesta.count("e")==1)){
+			for(int j=0; j<gramatica.size();j++){
+				if(gramatica[j].first==produccion.second[i]){
+					set<string> aux;
+					aux=calcularPrimeros(gramatica[j]);
+					for(auto k:aux){
+						respuesta.insert(k);
+					}
+				}
+			}
+		}
+		else if(noTerminales.count(produccion.second[i])==0){
+			respuesta.insert(produccion.second[i]);	
+			break;
+		}
+	}
+	return respuesta;
+}
+
+set<string> calcularSiguientes(pair<string,vector<string>> produccion,string aux){
+	set<string> respuesta;
+	for(int i=0; i<produccion.second.size();i++){
+		if(aux==produccion.second[i]){
+			if(i==produccion.second.size()-1){
+				respuesta.insert("$");
+				for(int j=0; j<gramatica.size();j++){
+					for(int k=0;k<gramatica[j].second.size();k++){
+						if(produccion.first==gramatica[j].second[k] and produccion.first!=gramatica[j].first){
+							set<string> setAux;
+							setAux=calcularSiguientes(gramatica[j],produccion.first);
+							for(auto m:setAux){
+								respuesta.insert(m);
+							}
+						}
+					}
+				}
+			}
+			else if(i<produccion.second.size()-1){
+				if(Terminales.count(produccion.second[i+1])){
+					respuesta.insert(produccion.second[i+1]);
+				}
+				else{
+					for(int j=0;j<gramatica.size();j++){
+						if(gramatica[j].first==produccion.second[i+1]){
+							set<string>setAux;
+							setAux=calcularPrimeros(gramatica[j]);
+							for(auto k:setAux){
+								respuesta.insert(k);
+							}
+						}
+					}
+					if(respuesta.count("e")==1){
+						respuesta.erase("e");
+						for(int n=0; n<gramatica.size();n++){
+							if(produccion.first==gramatica[n].first){
+								set<string> setAux;
+								setAux=calcularSiguientes(gramatica[n],produccion.first);
+								for(auto k:setAux){
+									respuesta.insert(k);
+								}
+							}
+						}
+					}
+				}
+			}
+			break;
+		}
+	}
+	return respuesta;
+}
+
 int numConjunto=1;
 
 void obtenerCerradura(vector<string> kernel){
